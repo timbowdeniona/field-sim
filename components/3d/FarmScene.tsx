@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useFrame } from '@react-three/fiber';
-import { OrbitControls, Sky } from '@react-three/drei';
+import { OrbitControls, Sky, Html } from '@react-three/drei';
 import { useGameStore } from '@/store/useGameStore';
 import { Lighting } from './Lighting';
 import { Terrain } from './Terrain';
@@ -44,6 +44,19 @@ export const FarmScene: React.FC = () => {
 
       {/* Dynamic Directional Sunlight/Moonlight & Shadows */}
       <Lighting />
+
+      {/* Floating 3D Farm Title Sign */}
+      <group position={[0, 6.5, -6.5]}>
+        <Html center distanceFactor={22} zIndexRange={[100, 0]}>
+          <div className="flex items-center gap-2 px-5 py-2 rounded-2xl bg-slate-900/90 border-2 border-amber-400/80 text-white shadow-2xl backdrop-blur-md pointer-events-none transform hover:scale-105 transition-all">
+            <span className="text-xl">🌾</span>
+            <span className="font-extrabold text-xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-emerald-300 to-yellow-400 whitespace-nowrap drop-shadow-md">
+              Roger's Field
+            </span>
+            <span className="text-xl">🚜</span>
+          </div>
+        </Html>
+      </group>
 
       {/* Scene Content */}
       <Terrain />

@@ -102,6 +102,14 @@ export const HUDOverlay: React.FC = () => {
           </div>
         </div>
 
+        {/* Top-Center Floating Title: Roger's Field */}
+        <div className="hidden lg:flex items-center gap-2 bg-gradient-to-r from-emerald-950/80 via-slate-900/90 to-emerald-950/80 backdrop-blur-md border border-emerald-500/40 rounded-2xl px-5 py-2 shadow-2xl pointer-events-auto">
+          <Sprout className="w-5 h-5 text-emerald-400 animate-bounce" />
+          <h1 className="text-lg font-black tracking-wide bg-gradient-to-r from-amber-300 via-emerald-300 to-yellow-400 bg-clip-text text-transparent">
+            Roger's Field
+          </h1>
+        </div>
+
         {/* Right Side: Game Controls & Navigation */}
         <div className="flex items-center gap-2 pointer-events-auto">
           {/* Time Speed Controls */}
