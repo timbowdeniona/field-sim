@@ -184,20 +184,65 @@ export const HUDOverlay: React.FC = () => {
         </div>
       </div>
 
-      {/* --- VEHICLE DRIVING OVERLAY PROMPT --- */}
+      {/* --- VEHICLE DRIVING OVERLAY & TOUCH CONTROLS --- */}
       {isVehicleMounted && (
-        <div className="self-center bg-slate-900/90 backdrop-blur-md border border-amber-500/50 text-white rounded-2xl px-6 py-3 shadow-2xl flex items-center gap-4 pointer-events-auto animate-pulse">
-          <Truck className="w-6 h-6 text-amber-400" />
-          <div>
-            <div className="font-bold text-amber-400 text-sm">Tractor Mounted</div>
-            <div className="text-xs text-slate-300">Use <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-600">W</kbd> <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-600">A</kbd> <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-600">S</kbd> <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-600">D</kbd> to Drive</div>
+        <div className="self-center flex flex-col items-center gap-3 pointer-events-auto">
+          {/* On-screen Touch D-Pad for Mobile & Tablet */}
+          <div className="flex flex-col items-center gap-1.5 p-3 rounded-3xl bg-slate-900/90 backdrop-blur-md border border-amber-500/50 shadow-2xl">
+            {/* Accelerate Forward */}
+            <button
+              onTouchStart={() => window.dispatchEvent(new CustomEvent('vehicle_control', { detail: { action: 'forward', active: true } }))}
+              onTouchEnd={() => window.dispatchEvent(new CustomEvent('vehicle_control', { detail: { action: 'forward', active: false } }))}
+              onMouseDown={() => window.dispatchEvent(new CustomEvent('vehicle_control', { detail: { action: 'forward', active: true } }))}
+              onMouseUp={() => window.dispatchEvent(new CustomEvent('vehicle_control', { detail: { action: 'forward', active: false } }))}
+              className="p-3 bg-emerald-600 active:bg-emerald-400 text-slate-950 rounded-2xl font-bold shadow-lg touch-none"
+            >
+              ▲ FORWARD
+            </button>
+
+            <div className="flex items-center gap-2">
+              {/* Steer Left */}
+              <button
+                onTouchStart={() => window.dispatchEvent(new CustomEvent('vehicle_control', { detail: { action: 'left', active: true } }))}
+                onTouchEnd={() => window.dispatchEvent(new CustomEvent('vehicle_control', { detail: { action: 'left', active: false } }))}
+                onMouseDown={() => window.dispatchEvent(new CustomEvent('vehicle_control', { detail: { action: 'left', active: true } }))}
+                onMouseUp={() => window.dispatchEvent(new CustomEvent('vehicle_control', { detail: { action: 'left', active: false } }))}
+                className="p-3 bg-slate-800 active:bg-slate-700 text-amber-400 rounded-2xl font-bold shadow-lg touch-none"
+              >
+                ◀ LEFT
+              </button>
+
+              {/* Dismount Button */}
+              <button
+                onClick={toggleVehicleMount}
+                className="px-4 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-2xl transition-all shadow-lg"
+              >
+                DISMOUNT
+              </button>
+
+              {/* Steer Right */}
+              <button
+                onTouchStart={() => window.dispatchEvent(new CustomEvent('vehicle_control', { detail: { action: 'right', active: true } }))}
+                onTouchEnd={() => window.dispatchEvent(new CustomEvent('vehicle_control', { detail: { action: 'right', active: false } }))}
+                onMouseDown={() => window.dispatchEvent(new CustomEvent('vehicle_control', { detail: { action: 'right', active: true } }))}
+                onMouseUp={() => window.dispatchEvent(new CustomEvent('vehicle_control', { detail: { action: 'right', active: false } }))}
+                className="p-3 bg-slate-800 active:bg-slate-700 text-amber-400 rounded-2xl font-bold shadow-lg touch-none"
+              >
+                RIGHT ▶
+              </button>
+            </div>
+
+            {/* Reverse / Brake */}
+            <button
+              onTouchStart={() => window.dispatchEvent(new CustomEvent('vehicle_control', { detail: { action: 'backward', active: true } }))}
+              onTouchEnd={() => window.dispatchEvent(new CustomEvent('vehicle_control', { detail: { action: 'backward', active: false } }))}
+              onMouseDown={() => window.dispatchEvent(new CustomEvent('vehicle_control', { detail: { action: 'backward', active: true } }))}
+              onMouseUp={() => window.dispatchEvent(new CustomEvent('vehicle_control', { detail: { action: 'backward', active: false } }))}
+              className="p-3 bg-red-700 active:bg-red-500 text-white rounded-2xl font-bold shadow-lg touch-none"
+            >
+              ▼ REVERSE
+            </button>
           </div>
-          <button
-            onClick={toggleVehicleMount}
-            className="ml-2 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-xl transition-all"
-          >
-            Dismount [E]
-          </button>
         </div>
       )}
 

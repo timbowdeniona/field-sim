@@ -60,11 +60,20 @@ export const VehicleMesh: React.FC = () => {
       if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.current.right = false;
     };
 
+    const handleVehicleControl = (e: Event) => {
+      const customEvent = e as CustomEvent<{ action: 'forward' | 'backward' | 'left' | 'right'; active: boolean }>;
+      if (customEvent.detail && keys.current[customEvent.detail.action] !== undefined) {
+        keys.current[customEvent.detail.action] = customEvent.detail.active;
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('vehicle_control', handleVehicleControl);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('vehicle_control', handleVehicleControl);
     };
   }, [isMounted, toggleVehicleMount]);
 
