@@ -5,6 +5,7 @@ import { HUDOverlay } from '@/components/ui/HUDOverlay';
 import { ShopModal } from '@/components/ui/ShopModal';
 import { InventoryModal } from '@/components/ui/InventoryModal';
 import { ControlsModal } from '@/components/ui/ControlsModal';
+import { InstructionsPageModal } from '@/components/ui/InstructionsPageModal';
 
 // Dynamically import 3D Canvas component with ssr: false
 const FarmCanvasContainer = dynamic(
@@ -31,6 +32,7 @@ export default function Home() {
       <ShopModal />
       <InventoryModal />
       <ControlsModal />
+      <InstructionsPageModal />
     </main>
   );
 }

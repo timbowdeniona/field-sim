@@ -6,7 +6,8 @@ import {
   LivestockAnimal, 
   InventoryItemKey, 
   WeatherType, 
-  CameraViewMode 
+  CameraViewMode,
+  VehicleType 
 } from '@/types/game';
 import { soundFx } from '@/utils/sound';
 
@@ -14,7 +15,7 @@ interface GameState {
   // Economy & Time
   money: number;
   day: number;
-  timeOfDay: number; // 0 to 24 (e.g. 14.5 = 14:30)
+  timeOfDay: number; // 0 to 24
   timeSpeed: number; // 0 = paused, 1 = normal, 2 = fast, 5 = ultra
   weather: WeatherType;
   
@@ -27,28 +28,48 @@ interface GameState {
   // Livestock
   animals: LivestockAnimal[];
   
-  // Vehicle & Driving
+  // Controllable Player Character (Roger)
+  characterPosition: [number, number, number];
+  characterHeading: number;
+  characterIsWalking: boolean;
+
+  // Vehicles & Driving
+  activeVehicle: VehicleType;
   isVehicleMounted: boolean;
-  vehiclePosition: [number, number, number];
+  vehiclePosition: [number, number, number]; // Tractor pos
   vehicleHeading: number;
   vehicleSpeed: number;
+  diggerPosition: [number, number, number];
+  diggerHeading: number;
+  diggerSpeed: number;
   
   // Tool & UI Navigation
   selectedTool: ToolType;
   cameraMode: CameraViewMode;
-  activeModal: 'shop' | 'inventory' | 'controls' | 'stats' | null;
+  activeModal: 'shop' | 'inventory' | 'controls' | 'instructions' | 'stats' | null;
   soundEnabled: boolean;
 
   // Actions
   setTimeSpeed: (speed: number) => void;
   setSelectedTool: (tool: ToolType) => void;
   setCameraMode: (mode: CameraViewMode) => void;
-  setActiveModal: (modal: 'shop' | 'inventory' | 'controls' | 'stats' | null) => void;
+  setActiveModal: (modal: 'shop' | 'inventory' | 'controls' | 'instructions' | 'stats' | null) => void;
   toggleSound: () => void;
   
+  // Character Actions
+  updateCharacterTransform: (pos: [number, number, number], heading: number, isWalking: boolean) => void;
+
+  // Vehicle Actions
+  mountVehicle: (type: 'tractor' | 'digger') => void;
+  dismountVehicle: () => void;
+  toggleVehicleMount: () => void; // Toggle between character and tractor
+  updateVehiclePhysics: (pos: [number, number, number], heading: number, speed: number) => void;
+  updateDiggerPhysics: (pos: [number, number, number], heading: number, speed: number) => void;
+
   // Farming Actions
   interactPlot: (plotId: string) => void;
   tillPlot: (plotId: string) => void;
+  till3x3Area: (centerX: number, centerZ: number) => void;
   plantCrop: (plotId: string, cropType: CropType) => void;
   waterPlot: (plotId: string) => void;
   harvestPlot: (plotId: string) => void;
@@ -57,10 +78,6 @@ interface GameState {
   // Livestock Actions
   feedAnimal: (animalId: string) => void;
   collectAnimalProduct: (animalId: string) => void;
-  
-  // Vehicle Actions
-  toggleVehicleMount: () => void;
-  updateVehiclePhysics: (pos: [number, number, number], heading: number, speed: number) => void;
   
   // Economy Actions
   buyItem: (itemKey: InventoryItemKey, quantity?: number, price?: number) => boolean;
@@ -72,7 +89,6 @@ interface GameState {
   tick: (deltaSeconds: number) => void;
 }
 
-// Helper to generate initial 10x10 soil grid centered around (0,0)
 const createInitialGrid = (): SoilPlot[] => {
   const plots: SoilPlot[] = [];
   const size = 10;
@@ -81,7 +97,6 @@ const createInitialGrid = (): SoilPlot[] => {
   for (let x = -half; x < half; x++) {
     for (let z = -half; z < half; z++) {
       const id = `plot_${x}_${z}`;
-      // Pre-till and plant a few plots to give user a head start
       let status: SoilPlot['status'] = 'grass';
       let crop: SoilPlot['crop'] = undefined;
       
@@ -98,19 +113,12 @@ const createInitialGrid = (): SoilPlot[] => {
         }
       }
       
-      plots.push({
-        id,
-        x,
-        z,
-        status,
-        crop
-      });
+      plots.push({ id, x, z, status, crop });
     }
   }
   return plots;
 };
 
-// Initial Livestock
 const initialAnimals: LivestockAnimal[] = [
   {
     id: 'cow_1',
@@ -165,7 +173,7 @@ const initialAnimals: LivestockAnimal[] = [
 export const useGameStore = create<GameState>((set, get) => ({
   money: 250,
   day: 1,
-  timeOfDay: 8.0, // 8:00 AM
+  timeOfDay: 8.0,
   timeSpeed: 1,
   weather: 'sunny',
   
@@ -189,13 +197,21 @@ export const useGameStore = create<GameState>((set, get) => ({
   
   animals: initialAnimals,
   
+  characterPosition: [0, 0.5, 3],
+  characterHeading: 0,
+  characterIsWalking: false,
+
+  activeVehicle: null,
   isVehicleMounted: false,
   vehiclePosition: [-12, 0.5, 5],
   vehicleHeading: 0,
   vehicleSpeed: 0,
+  diggerPosition: [-8, 0.5, 8],
+  diggerHeading: Math.PI / 4,
+  diggerSpeed: 0,
   
   selectedTool: 'select',
-  cameraMode: 'third_person',
+  cameraMode: 'character_follow',
   activeModal: null,
   soundEnabled: true,
 
@@ -204,6 +220,84 @@ export const useGameStore = create<GameState>((set, get) => ({
   setCameraMode: (mode) => set({ cameraMode: mode }),
   setActiveModal: (modal) => set({ activeModal: modal }),
   toggleSound: () => set((state) => ({ soundEnabled: !state.soundEnabled })),
+
+  updateCharacterTransform: (pos, heading, isWalking) => {
+    set({
+      characterPosition: pos,
+      characterHeading: heading,
+      characterIsWalking: isWalking
+    });
+  },
+
+  mountVehicle: (type) => {
+    set({
+      activeVehicle: type,
+      isVehicleMounted: true,
+      cameraMode: 'vehicle_follow',
+      selectedTool: 'drive'
+    });
+  },
+
+  dismountVehicle: () => {
+    const state = get();
+    // Place Roger right beside the current vehicle
+    let dropX = state.characterPosition[0];
+    let dropZ = state.characterPosition[2];
+    if (state.activeVehicle === 'tractor') {
+      dropX = state.vehiclePosition[0] + 1.8;
+      dropZ = state.vehiclePosition[2];
+    } else if (state.activeVehicle === 'digger') {
+      dropX = state.diggerPosition[0] + 2.0;
+      dropZ = state.diggerPosition[2];
+    }
+
+    set({
+      activeVehicle: null,
+      isVehicleMounted: false,
+      characterPosition: [dropX, 0.5, dropZ],
+      cameraMode: 'character_follow',
+      selectedTool: 'select'
+    });
+  },
+
+  toggleVehicleMount: () => {
+    const state = get();
+    if (state.activeVehicle) {
+      state.dismountVehicle();
+    } else {
+      // Check distance to tractor vs digger
+      const distToTractor = Math.hypot(
+        state.characterPosition[0] - state.vehiclePosition[0],
+        state.characterPosition[2] - state.vehiclePosition[2]
+      );
+      const distToDigger = Math.hypot(
+        state.characterPosition[0] - state.diggerPosition[0],
+        state.characterPosition[2] - state.diggerPosition[2]
+      );
+
+      if (distToDigger < distToTractor && distToDigger < 6) {
+        state.mountVehicle('digger');
+      } else {
+        state.mountVehicle('tractor');
+      }
+    }
+  },
+
+  updateVehiclePhysics: (pos, heading, speed) => {
+    set({
+      vehiclePosition: pos,
+      vehicleHeading: heading,
+      vehicleSpeed: speed
+    });
+  },
+
+  updateDiggerPhysics: (pos, heading, speed) => {
+    set({
+      diggerPosition: pos,
+      diggerHeading: heading,
+      diggerSpeed: speed
+    });
+  },
 
   interactPlot: (plotId) => {
     const { selectedTool, tillPlot, plantCrop, waterPlot, harvestPlot, placeSprinkler } = get();
@@ -234,7 +328,6 @@ export const useGameStore = create<GameState>((set, get) => ({
         break;
       case 'select':
       default:
-        // Smart action fallback based on plot state
         const plot = get().plots.find(p => p.id === plotId);
         if (!plot) return;
         if (plot.crop && plot.crop.stage === 2) {
@@ -258,6 +351,20 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (state.soundEnabled) soundFx.playTill();
     set({
       plots: state.plots.map(p => p.id === plotId ? { ...p, status: 'tilled' } : p)
+    });
+  },
+
+  till3x3Area: (centerX, centerZ) => {
+    const state = get();
+    if (state.soundEnabled) soundFx.playTill();
+
+    set({
+      plots: state.plots.map(p => {
+        if (Math.abs(p.x - centerX) <= 1 && Math.abs(p.z - centerZ) <= 1 && p.status === 'grass') {
+          return { ...p, status: 'tilled' };
+        }
+        return p;
+      })
     });
   },
 
@@ -309,7 +416,6 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     if (state.soundEnabled) soundFx.playHarvest();
 
-    // 1 harvested crop + 50% chance of extra seed
     const gainedCropCount = 1 + (Math.random() > 0.6 ? 1 : 0);
     const gainedSeedCount = Math.random() > 0.5 ? 1 : 0;
 
@@ -321,7 +427,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       },
       plots: state.plots.map(p => p.id === plotId ? {
         ...p,
-        status: 'tilled', // Soil reverts to tilled dry after harvest
+        status: 'tilled',
         crop: undefined
       } : p)
     });
@@ -376,24 +482,6 @@ export const useGameStore = create<GameState>((set, get) => ({
         hasProductReady: false,
         productProgress: 0
       } : a)
-    });
-  },
-
-  toggleVehicleMount: () => {
-    const state = get();
-    const newMounted = !state.isVehicleMounted;
-    set({
-      isVehicleMounted: newMounted,
-      cameraMode: newMounted ? 'vehicle_follow' : 'third_person',
-      selectedTool: newMounted ? 'drive' : 'select'
-    });
-  },
-
-  updateVehiclePhysics: (pos, heading, speed) => {
-    set({
-      vehiclePosition: pos,
-      vehicleHeading: heading,
-      vehicleSpeed: speed
     });
   },
 
@@ -501,9 +589,9 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   tick: (deltaSeconds) => {
     const state = get();
-    if (state.timeSpeed === 0) return; // Paused
+    if (state.timeSpeed === 0) return;
 
-    const gameMinutesPassed = deltaSeconds * state.timeSpeed * 10; // 1 real sec = 10 game mins at 1x
+    const gameMinutesPassed = deltaSeconds * state.timeSpeed * 10;
     const timeDeltaHours = gameMinutesPassed / 60;
 
     let newTimeOfDay = state.timeOfDay + timeDeltaHours;
@@ -514,21 +602,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       newDay += 1;
     }
 
-    // Weather transition randomly at 06:00
     let newWeather = state.weather;
     if (Math.floor(newTimeOfDay) === 6 && Math.floor(state.timeOfDay) === 5) {
       const rand = Math.random();
       newWeather = rand < 0.6 ? 'sunny' : (rand < 0.85 ? 'cloudy' : 'rainy');
     }
 
-    // Rain automatically waters dry tilled soil plots!
     const isRaining = newWeather === 'rainy';
 
-    // Crop growth logic
     const updatedPlots = state.plots.map((plot) => {
       let currentStatus = plot.status;
-      
-      // Auto-water if rainy or has sprinkler nearby
       if (isRaining || plot.hasSprinkler) {
         currentStatus = 'moist';
       }
@@ -537,17 +620,16 @@ export const useGameStore = create<GameState>((set, get) => ({
         return { ...plot, status: currentStatus };
       }
 
-      // Moisture accelerates crop growth rate 2x
       const growthMultiplier = (currentStatus === 'moist' ? 2.5 : 1.0) * state.timeSpeed;
-      const addProgress = (deltaSeconds * 3.5) * growthMultiplier; // ~30 sec to mature if watered
+      const addProgress = (deltaSeconds * 3.5) * growthMultiplier;
       
       const newProgress = Math.min(100, plot.crop.progress + addProgress);
       let newStage = plot.crop.stage;
 
       if (newProgress >= 100) {
-        newStage = 2; // Fully mature
+        newStage = 2;
       } else if (newProgress >= 35) {
-        newStage = 1; // Sprout
+        newStage = 1;
       }
 
       return {
@@ -561,12 +643,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       };
     });
 
-    // Livestock hunger & product generation
     const updatedAnimals = state.animals.map((animal) => {
-      // Hunger decay
       const newHunger = Math.max(0, animal.hunger - (deltaSeconds * 0.5 * state.timeSpeed));
-      
-      // Product progress when well-fed (>30 hunger)
       let newProductProgress = animal.productProgress;
       let productReady = animal.hasProductReady;
 
@@ -578,16 +656,13 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
       }
 
-      // Random wander AI targets
       let tX = animal.targetX;
       let tZ = animal.targetZ;
       if (Math.random() < 0.02) {
-        // Enclosure bounds: X: 8 to 18, Z: -15 to -3
         tX = 8 + Math.random() * 10;
         tZ = -15 + Math.random() * 12;
       }
 
-      // Move toward target position
       const dx = tX - animal.x;
       const dz = tZ - animal.z;
       const dist = Math.sqrt(dx * dx + dz * dz);

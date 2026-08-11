@@ -21,7 +21,8 @@ import {
   Scissors, 
   Hand,
   Sparkles,
-  Layers
+  Layers,
+  BookOpen
 } from 'lucide-react';
 import { useGameStore } from '@/store/useGameStore';
 import { ToolType } from '@/types/game';
@@ -34,6 +35,7 @@ export const HUDOverlay: React.FC = () => {
   const weather = useGameStore((state) => state.weather);
   const selectedTool = useGameStore((state) => state.selectedTool);
   const inventory = useGameStore((state) => state.inventory);
+  const activeVehicle = useGameStore((state) => state.activeVehicle);
   const isVehicleMounted = useGameStore((state) => state.isVehicleMounted);
   const soundEnabled = useGameStore((state) => state.soundEnabled);
 
@@ -173,6 +175,16 @@ export const HUDOverlay: React.FC = () => {
             <span className="text-sm">Market</span>
           </button>
 
+          {/* Guide / Instructions Button */}
+          <button
+            onClick={() => setActiveModal('instructions')}
+            className="flex items-center gap-1.5 px-3 py-2.5 bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 rounded-2xl text-blue-300 font-bold transition-all shadow-xl"
+            title="Gameplay Guide & Instructions"
+          >
+            <BookOpen className="w-5 h-5 text-blue-400" />
+            <span className="text-xs hidden md:inline">Guide</span>
+          </button>
+
           {/* Controls Help */}
           <button
             onClick={() => setActiveModal('controls')}
@@ -185,8 +197,13 @@ export const HUDOverlay: React.FC = () => {
       </div>
 
       {/* --- VEHICLE DRIVING OVERLAY & TOUCH CONTROLS --- */}
-      {isVehicleMounted && (
+      {activeVehicle !== null && (
         <div className="self-center flex flex-col items-center gap-3 pointer-events-auto">
+          {/* Active Vehicle Status Badge */}
+          <div className="px-4 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 font-extrabold text-xs">
+            Currently Driving: {activeVehicle === 'digger' ? 'Yellow Digger (3x3 Excavator)' : 'Red Tractor'}
+          </div>
+
           {/* On-screen Touch D-Pad for Mobile & Tablet */}
           <div className="flex flex-col items-center gap-1.5 p-3 rounded-3xl bg-slate-900/90 backdrop-blur-md border border-amber-500/50 shadow-2xl">
             {/* Accelerate Forward */}
@@ -214,7 +231,7 @@ export const HUDOverlay: React.FC = () => {
 
               {/* Dismount Button */}
               <button
-                onClick={toggleVehicleMount}
+                onClick={() => useGameStore.getState().dismountVehicle()}
                 className="px-4 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-2xl transition-all shadow-lg"
               >
                 DISMOUNT
@@ -247,7 +264,7 @@ export const HUDOverlay: React.FC = () => {
       )}
 
       {/* --- BOTTOM TOOLBAR --- */}
-      {!isVehicleMounted && (
+      {activeVehicle === null && (
         <div className="self-center pointer-events-auto max-w-full overflow-x-auto py-1">
           <div className="flex items-center gap-1.5 md:gap-2 bg-slate-900/85 backdrop-blur-lg border border-slate-700/70 p-2 rounded-2xl shadow-2xl">
             {tools.map((t) => {
@@ -289,12 +306,20 @@ export const HUDOverlay: React.FC = () => {
 
             {/* Mount Tractor Button */}
             <button
-              onClick={toggleVehicleMount}
+              onClick={() => useGameStore.getState().mountVehicle('tractor')}
               className="flex flex-col items-center justify-center p-2.5 md:p-3 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 hover:bg-amber-500/30 transition-all ml-1"
             >
-              <span className="text-[9px] font-mono font-bold bg-amber-950/60 px-1 rounded text-amber-300">E</span>
               <Truck className="w-5 h-5 mt-1" />
               <span className="text-[10px] font-bold mt-1">Tractor</span>
+            </button>
+
+            {/* Mount Digger Button */}
+            <button
+              onClick={() => useGameStore.getState().mountVehicle('digger')}
+              className="flex flex-col items-center justify-center p-2.5 md:p-3 rounded-xl bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/30 transition-all"
+            >
+              <span className="text-xs mt-1">🚜</span>
+              <span className="text-[10px] font-bold mt-1">Digger</span>
             </button>
           </div>
         </div>

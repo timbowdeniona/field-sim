@@ -13,6 +13,8 @@ export type ToolType =
   | 'drive'
   | 'sprinkler';
 
+export type VehicleType = 'tractor' | 'digger' | null;
+
 export type SoilStatus = 'grass' | 'tilled' | 'moist';
 
 export interface SoilPlot {
@@ -65,13 +67,13 @@ export interface InventoryItemInfo {
   type: 'seed' | 'crop' | 'product' | 'supply' | 'equipment';
   buyPrice: number;
   sellPrice: number;
-  icon: string; // Icon identifier or emoji fallback
+  icon: string;
   description: string;
 }
 
 export type WeatherType = 'sunny' | 'cloudy' | 'rainy';
 
-export type CameraViewMode = 'third_person' | 'top_down' | 'vehicle_follow';
+export type CameraViewMode = 'third_person' | 'top_down' | 'vehicle_follow' | 'character_follow';
 
 export interface MarketItem {
   id: InventoryItemKey;

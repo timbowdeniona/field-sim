@@ -14,10 +14,11 @@ export const VehicleMesh: React.FC = () => {
 
   const { camera } = useThree();
 
-  const isMounted = useGameStore((state) => state.isVehicleMounted);
+  const activeVehicle = useGameStore((state) => state.activeVehicle);
+  const isMounted = activeVehicle === 'tractor';
   const updateVehiclePhysics = useGameStore((state) => state.updateVehiclePhysics);
   const soundEnabled = useGameStore((state) => state.soundEnabled);
-  const toggleVehicleMount = useGameStore((state) => state.toggleVehicleMount);
+  const dismountVehicle = useGameStore((state) => state.dismountVehicle);
 
   // Vehicle kinematic physical variables stored in refs to avoid re-renders
   const phys = useRef({
@@ -49,7 +50,7 @@ export const VehicleMesh: React.FC = () => {
       if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.current.left = true;
       if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.current.right = true;
       if ((e.key === 'e' || e.key === 'E') && isMounted) {
-        toggleVehicleMount();
+        dismountVehicle();
       }
     };
 
@@ -75,7 +76,7 @@ export const VehicleMesh: React.FC = () => {
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('vehicle_control', handleVehicleControl);
     };
-  }, [isMounted, toggleVehicleMount]);
+  }, [isMounted, dismountVehicle]);
 
   useFrame((_, delta) => {
     const p = phys.current;

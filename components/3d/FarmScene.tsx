@@ -8,12 +8,13 @@ import { Lighting } from './Lighting';
 import { Terrain } from './Terrain';
 import { SoilGrid } from './SoilGrid';
 import { VehicleMesh } from './VehicleMesh';
+import { DiggerMesh } from './DiggerMesh';
+import { PlayerCharacterMesh } from './PlayerCharacterMesh';
 import { LivestockMesh } from './LivestockMesh';
 
 export const FarmScene: React.FC = () => {
   const timeOfDay = useGameStore((state) => state.timeOfDay);
-  const cameraMode = useGameStore((state) => state.cameraMode);
-  const isVehicleMounted = useGameStore((state) => state.isVehicleMounted);
+  const activeVehicle = useGameStore((state) => state.activeVehicle);
 
   // Main game tick loop inside R3F canvas animation frame
   useFrame((_, delta) => {
@@ -48,11 +49,13 @@ export const FarmScene: React.FC = () => {
       {/* Scene Content */}
       <Terrain />
       <SoilGrid />
+      <PlayerCharacterMesh />
       <VehicleMesh />
+      <DiggerMesh />
       <LivestockMesh />
 
-      {/* Camera Controls when NOT driving vehicle */}
-      {!isVehicleMounted && (
+      {/* Camera Controls when NOT driving a vehicle */}
+      {activeVehicle === null && (
         <OrbitControls
           makeDefault
           enableDamping
